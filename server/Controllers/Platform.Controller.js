@@ -1,5 +1,5 @@
-const axios = require('axios');
-const cheerio = require('cheerio');
+const axios = require("axios");
+const cheerio = require("cheerio");
 const BASE_URL = "https://geeks-for-geeks-api.vercel.app";
 
 exports.getCodeChefDetails = async (req, res) => {
@@ -16,8 +16,9 @@ exports.getCodeChefDetails = async (req, res) => {
     const url = `https://www.codechef.com/users/${username}`;
     const { data: html } = await axios.get(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+      },
     });
     const $ = cheerio.load(html);
 
@@ -37,29 +38,39 @@ exports.getCodeChefDetails = async (req, res) => {
       .trim();
 
     // Ranks
-    const globalRank = $(".rating-ranks ul li").first().find("strong").text().trim();
-    const countryRank = $(".rating-ranks ul li").last().find("strong").text().trim();
+    const globalRank = $(".rating-ranks ul li")
+      .first()
+      .find("strong")
+      .text()
+      .trim();
+    const countryRank = $(".rating-ranks ul li")
+      .last()
+      .find("strong")
+      .text()
+      .trim();
 
     // Total solved
-    const totalSolved = $('section.problems-solved')
-      .text()
-      .match(/Total Problems Solved:\s*(\d+)/)?.[1] || "0";
+    const totalSolved =
+      $("section.problems-solved")
+        .text()
+        .match(/Total Problems Solved:\s*(\d+)/)?.[1] || "0";
 
     // Difficulty-wise
     const difficulties = { Easy: 0, Medium: 0, Hard: 0 };
-    $('section.problems-solved article').each((_, el) => {
-      const text = $(el).find('h5').text().trim();
-      const count = $(el).find('p').text().match(/\d+/)?.[0];
+    $("section.problems-solved article").each((_, el) => {
+      const text = $(el).find("h5").text().trim();
+      const count = $(el).find("p").text().match(/\d+/)?.[0];
       if (text.includes("Easy")) difficulties.Easy = parseInt(count) || 0;
-      else if (text.includes("Medium")) difficulties.Medium = parseInt(count) || 0;
+      else if (text.includes("Medium"))
+        difficulties.Medium = parseInt(count) || 0;
       else if (text.includes("Hard")) difficulties.Hard = parseInt(count) || 0;
     });
 
     // Solved problems
     const solvedProblems = [];
-    $('section.problems-solved article p a').each((_, el) => {
+    $("section.problems-solved article p a").each((_, el) => {
       const code = $(el).text().trim();
-      const href = $(el).attr('href');
+      const href = $(el).attr("href");
       if (code && href) {
         solvedProblems.push({
           code,
@@ -119,9 +130,9 @@ async function generateCodeChefHeatmap(username) {
       last6MonthsData: true,
       averageSubmissionsPerDay: 0,
       mostActiveMonth: null,
-      lastSubmissionDate: null
+      lastSubmissionDate: null,
     },
-    calendar: {}
+    calendar: {},
   };
 
   const currentYear = new Date().getFullYear();
@@ -132,7 +143,7 @@ async function generateCodeChefHeatmap(username) {
     `https://codechef-api.vercel.app/handle/${username}`,
     `https://competitive-coding-api.herokuapp.com/api/codechef/${username}`,
     `https://codechef-api.herokuapp.com/${username}`,
-    `https://api.codechef.com/users/${username}` // Official API (if available)
+    `https://api.codechef.com/users/${username}`, // Official API (if available)
   ];
 
   for (const apiUrl of apis) {
@@ -141,14 +152,15 @@ async function generateCodeChefHeatmap(username) {
       const apiResponse = await axios.get(apiUrl, {
         timeout: 10000,
         headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
+          Accept: "application/json",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        },
       });
 
       if (apiResponse.data && apiResponse.data.success !== false) {
         const apiData = apiResponse.data;
-        
+
         // Extract heatmap data from different API response formats
         if (apiData.heatMap) {
           rawHeatmap = apiData.heatMap;
@@ -190,68 +202,69 @@ async function generateCodeChefHeatmap(username) {
 // Process submissions array to heatmap format
 function processSubmissionsToHeatmap(submissions) {
   const heatmap = {};
-  
+
   if (Array.isArray(submissions)) {
-    submissions.forEach(submission => {
+    submissions.forEach((submission) => {
       let date = null;
-      
+
       // Handle different date formats
       if (submission.date) {
-        date = submission.date.split('T')[0];
+        date = submission.date.split("T")[0];
       } else if (submission.submissionDate) {
-        date = submission.submissionDate.split('T')[0];
+        date = submission.submissionDate.split("T")[0];
       } else if (submission.time) {
-        date = new Date(submission.time).toISOString().split('T')[0];
+        date = new Date(submission.time).toISOString().split("T")[0];
       }
-      
+
       if (date) {
         heatmap[date] = (heatmap[date] || 0) + 1;
       }
     });
   }
-  
+
   return heatmap;
 }
 
 // Enhanced web scraping for CodeChef submissions
 async function scrapeCodeChefSubmissions(username) {
   const heatmap = {};
-  
+
   try {
     // Try to scrape from multiple CodeChef pages
     const pages = [
       `https://www.codechef.com/users/${username}/submissions`,
       `https://www.codechef.com/users/${username}`,
-      `https://www.codechef.com/ide/submissions/${username}`
+      `https://www.codechef.com/ide/submissions/${username}`,
     ];
 
     for (const pageUrl of pages) {
       try {
         const { data: html } = await axios.get(pageUrl, {
           headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
           },
-          timeout: 10000
+          timeout: 10000,
         });
 
         const $ = cheerio.load(html);
-        
+
         // Look for submission data in various formats
-        
+
         // Method 1: Check for submission table
-        $('table tr').each((_, row) => {
+        $("table tr").each((_, row) => {
           const $row = $(row);
-          const timeCell = $row.find('td').first();
+          const timeCell = $row.find("td").first();
           const timeText = timeCell.text().trim();
-          
+
           // Parse different date formats
           const dateFormats = [
             /(\d{4}-\d{2}-\d{2})/,
             /(\d{2}\/\d{2}\/\d{4})/,
             /(\d{2}-\d{2}-\d{4})/,
-            /(\d{1,2}\s+\w+\s+\d{4})/
+            /(\d{1,2}\s+\w+\s+\d{4})/,
           ];
-          
+
           for (const format of dateFormats) {
             const match = timeText.match(format);
             if (match) {
@@ -265,9 +278,13 @@ async function scrapeCodeChefSubmissions(username) {
         });
 
         // Method 2: Check for JavaScript data
-        $('script').each((_, script) => {
+        $("script").each((_, script) => {
           const scriptContent = $(script).html();
-          if (scriptContent && (scriptContent.includes('submission') || scriptContent.includes('calendar'))) {
+          if (
+            scriptContent &&
+            (scriptContent.includes("submission") ||
+              scriptContent.includes("calendar"))
+          ) {
             // Extract dates from JavaScript
             const dateRegex = /["'](\d{4}-\d{2}-\d{2})["']/g;
             let match;
@@ -282,7 +299,9 @@ async function scrapeCodeChefSubmissions(username) {
         const calendarScript = $('script:contains("calendar")').html();
         if (calendarScript) {
           try {
-            const calendarData = calendarScript.match(/calendar["\']?\s*:\s*({[^}]+})/);
+            const calendarData = calendarScript.match(
+              /calendar["\']?\s*:\s*({[^}]+})/
+            );
             if (calendarData) {
               const parsed = JSON.parse(calendarData[1]);
               Object.assign(heatmap, parsed);
@@ -312,7 +331,7 @@ function standardizeDate(dateStr) {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return null;
-    return date.toISOString().split('T')[0];
+    return date.toISOString().split("T")[0];
   } catch (error) {
     return null;
   }
@@ -324,10 +343,14 @@ function generateHeatmapStructure(rawHeatmap, year) {
   const startDate = new Date(year, 0, 1);
   const endDate = new Date(year, 11, 31);
 
-  for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-    const dateString = date.toISOString().split('T')[0];
+  for (
+    let date = new Date(startDate);
+    date <= endDate;
+    date.setDate(date.getDate() + 1)
+  ) {
+    const dateString = date.toISOString().split("T")[0];
     const count = rawHeatmap[dateString] || 0;
-    
+
     // Calculate intensity (0-4 scale)
     let intensity = 0;
     if (count > 0) {
@@ -345,7 +368,7 @@ function generateHeatmapStructure(rawHeatmap, year) {
       week: Math.ceil((date - startDate) / (7 * 24 * 60 * 60 * 1000)),
       month: date.getMonth() + 1,
       day: date.getDate(),
-      year: year
+      year: year,
     });
   }
 
@@ -356,7 +379,7 @@ function generateHeatmapStructure(rawHeatmap, year) {
 function calculateHeatmapStats(rawHeatmap) {
   const dates = Object.keys(rawHeatmap).sort();
   const counts = Object.values(rawHeatmap);
-  
+
   if (dates.length === 0) {
     return {
       totalSubmissions: 0,
@@ -367,7 +390,7 @@ function calculateHeatmapStats(rawHeatmap) {
       last6MonthsData: true,
       averageSubmissionsPerDay: 0,
       mostActiveMonth: null,
-      lastSubmissionDate: null
+      lastSubmissionDate: null,
     };
   }
 
@@ -382,13 +405,15 @@ function calculateHeatmapStats(rawHeatmap) {
 
   // Find most active month
   const monthCounts = {};
-  dates.forEach(date => {
+  dates.forEach((date) => {
     const month = date.substring(0, 7); // YYYY-MM
     monthCounts[month] = (monthCounts[month] || 0) + rawHeatmap[date];
   });
-  
-  const mostActiveMonth = Object.keys(monthCounts).reduce((a, b) => 
-    monthCounts[a] > monthCounts[b] ? a : b, null);
+
+  const mostActiveMonth = Object.keys(monthCounts).reduce(
+    (a, b) => (monthCounts[a] > monthCounts[b] ? a : b),
+    null
+  );
 
   return {
     totalSubmissions,
@@ -399,7 +424,7 @@ function calculateHeatmapStats(rawHeatmap) {
     last6MonthsData: true,
     averageSubmissionsPerDay: Math.round(averageSubmissionsPerDay * 100) / 100,
     mostActiveMonth,
-    lastSubmissionDate
+    lastSubmissionDate,
   };
 }
 
@@ -416,8 +441,10 @@ function calculateStreaks(heatmap) {
   for (let i = 1; i < dates.length; i++) {
     const currentDate = new Date(dates[i]);
     const previousDate = new Date(dates[i - 1]);
-    const daysDiff = Math.floor((currentDate - previousDate) / (1000 * 60 * 60 * 24));
-    
+    const daysDiff = Math.floor(
+      (currentDate - previousDate) / (1000 * 60 * 60 * 24)
+    );
+
     if (daysDiff === 1) {
       tempStreak++;
     } else {
@@ -430,11 +457,11 @@ function calculateStreaks(heatmap) {
   // Calculate current streak (from today backwards)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   for (let i = dates.length - 1; i >= 0; i--) {
     const date = new Date(dates[i]);
     const daysDiff = Math.floor((today - date) / (1000 * 60 * 60 * 24));
-    
+
     if (daysDiff === currentStreak) {
       currentStreak++;
     } else {
@@ -449,7 +476,7 @@ function calculateStreaks(heatmap) {
 exports.getCodeChefHeatmap = async (req, res) => {
   const { username } = req.params;
   const { year } = req.query;
-  
+
   if (!username) {
     return res.status(400).json({
       success: false,
@@ -460,7 +487,7 @@ exports.getCodeChefHeatmap = async (req, res) => {
   try {
     const targetYear = year ? parseInt(year) : new Date().getFullYear();
     const heatmapResult = await generateCodeChefHeatmap(username);
-    
+
     return res.status(200).json({
       success: true,
       message: "CodeChef heatmap data fetched successfully",
@@ -469,8 +496,8 @@ exports.getCodeChefHeatmap = async (req, res) => {
         year: targetYear,
         heatmap: heatmapResult.heatmapData,
         calendar: heatmapResult.calendar,
-        stats: heatmapResult.stats
-      }
+        stats: heatmapResult.stats,
+      },
     });
   } catch (error) {
     return res.status(500).json({
@@ -480,10 +507,6 @@ exports.getCodeChefHeatmap = async (req, res) => {
     });
   }
 };
-
-
-
-
 
 exports.getLeetCodeDetails = async (req, res) => {
   const { username } = req.params;
@@ -497,6 +520,8 @@ exports.getLeetCodeDetails = async (req, res) => {
 
   try {
     const graphqlUrl = "https://leetcode.com/graphql";
+
+    const leetCodeStats = await fetchLeetCodeQuestionCounts();
 
     // Step 1: Fetch profile and solved stats
     const profileQuery = {
@@ -593,7 +618,7 @@ exports.getLeetCodeDetails = async (req, res) => {
         streakRanges: [],
         monthlyStats: {},
         yearlyStats: {},
-      }
+      },
     };
 
     try {
@@ -680,7 +705,7 @@ exports.getLeetCodeDetails = async (req, res) => {
           categorySlug: "",
           skip: 0,
           limit: 50,
-          filters: {}
+          filters: {},
         },
       };
 
@@ -688,13 +713,14 @@ exports.getLeetCodeDetails = async (req, res) => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const questionsData = questionsResponse.data?.data?.problemsetQuestionList;
+      const questionsData =
+        questionsResponse.data?.data?.problemsetQuestionList;
 
       if (questionsData && questionsData.questions) {
         latestQuestions = questionsData.questions
-          .filter(q => !q.paidOnly) // Filter out premium questions
+          .filter((q) => !q.paidOnly) // Filter out premium questions
           .slice(0, 20) // Get top 20 questions
-          .map(question => ({
+          .map((question) => ({
             id: question.frontendQuestionId,
             title: question.title,
             titleSlug: question.titleSlug,
@@ -703,13 +729,13 @@ exports.getLeetCodeDetails = async (req, res) => {
             acceptanceRate: parseFloat(question.acRate).toFixed(1),
             status: question.status,
             isSolved: question.status === "ac",
-            topicTags: question.topicTags.map(tag => ({
+            topicTags: question.topicTags.map((tag) => ({
               name: tag.name,
-              slug: tag.slug
+              slug: tag.slug,
             })),
             hasSolution: question.hasSolution,
             hasVideoSolution: question.hasVideoSolution,
-            isPremium: question.paidOnly
+            isPremium: question.paidOnly,
           }));
       }
     } catch (questionsErr) {
@@ -757,9 +783,11 @@ exports.getLeetCodeDetails = async (req, res) => {
 
       if (trendingData && trendingData.challenges) {
         trendingQuestions = trendingData.challenges
-          .filter(challenge => challenge.question && !challenge.question.isPaidOnly)
+          .filter(
+            (challenge) => challenge.question && !challenge.question.isPaidOnly
+          )
           .slice(0, 10)
-          .map(challenge => ({
+          .map((challenge) => ({
             id: challenge.question.questionFrontendId,
             title: challenge.question.title,
             titleSlug: challenge.question.titleSlug,
@@ -768,11 +796,11 @@ exports.getLeetCodeDetails = async (req, res) => {
             acceptanceRate: parseFloat(challenge.question.acRate).toFixed(1),
             date: challenge.date,
             userStatus: challenge.userStatus,
-            topicTags: challenge.question.topicTags.map(tag => ({
+            topicTags: challenge.question.topicTags.map((tag) => ({
               name: tag.name,
-              slug: tag.slug
+              slug: tag.slug,
             })),
-            isDailyChallenge: true
+            isDailyChallenge: true,
           }));
       }
     } catch (trendingErr) {
@@ -784,6 +812,7 @@ exports.getLeetCodeDetails = async (req, res) => {
       success: true,
       username: user.username,
       profileUrl,
+      leetCodeStats,
       data: {
         name: user.profile.realName,
         avatar: user.profile.userAvatar,
@@ -818,7 +847,7 @@ exports.getLeetCodeQuestions = async (req, res) => {
 
   try {
     const graphqlUrl = "https://leetcode.com/graphql";
-    
+
     const filters = {};
     if (difficulty) {
       filters.difficulty = difficulty.toUpperCase();
@@ -879,7 +908,7 @@ exports.getLeetCodeQuestions = async (req, res) => {
       });
     }
 
-    const questions = questionsData.questions.map(question => ({
+    const questions = questionsData.questions.map((question) => ({
       id: question.frontendQuestionId,
       title: question.title,
       titleSlug: question.titleSlug,
@@ -888,13 +917,13 @@ exports.getLeetCodeQuestions = async (req, res) => {
       acceptanceRate: parseFloat(question.acRate).toFixed(1),
       status: question.status,
       isSolved: question.status === "ac",
-      topicTags: question.topicTags.map(tag => ({
+      topicTags: question.topicTags.map((tag) => ({
         name: tag.name,
-        slug: tag.slug
+        slug: tag.slug,
       })),
       hasSolution: question.hasSolution,
       hasVideoSolution: question.hasVideoSolution,
-      isPremium: question.paidOnly
+      isPremium: question.paidOnly,
     }));
 
     return res.status(200).json({
@@ -904,8 +933,8 @@ exports.getLeetCodeQuestions = async (req, res) => {
       pagination: {
         limit: parseInt(limit),
         skip: parseInt(skip),
-        hasMore: parseInt(skip) + parseInt(limit) < questionsData.total
-      }
+        hasMore: parseInt(skip) + parseInt(limit) < questionsData.total,
+      },
     });
   } catch (error) {
     console.error("Error fetching LeetCode questions:", error.message);
@@ -960,7 +989,8 @@ exports.getDailyChallenge = async (req, res) => {
       headers: { "Content-Type": "application/json" },
     });
 
-    const dailyData = dailyResponse.data?.data?.activeDailyCodingChallengeQuestion;
+    const dailyData =
+      dailyResponse.data?.data?.activeDailyCodingChallengeQuestion;
 
     if (!dailyData) {
       return res.status(404).json({
@@ -983,15 +1013,15 @@ exports.getDailyChallenge = async (req, res) => {
         acceptanceRate: parseFloat(dailyData.question.acRate).toFixed(1),
         likes: dailyData.question.likes,
         dislikes: dailyData.question.dislikes,
-        topicTags: dailyData.question.topicTags.map(tag => ({
+        topicTags: dailyData.question.topicTags.map((tag) => ({
           name: tag.name,
-          slug: tag.slug
+          slug: tag.slug,
         })),
         codeSnippets: dailyData.question.codeSnippets,
         sampleTestCase: dailyData.question.sampleTestCase,
         exampleTestcases: dailyData.question.exampleTestcases,
-        isPremium: dailyData.question.isPaidOnly
-      }
+        isPremium: dailyData.question.isPaidOnly,
+      },
     };
 
     return res.status(200).json({
@@ -1026,17 +1056,23 @@ function calculateHeatmapStatistics(submissionsByDate) {
 
   // Sort by date for streak calculations
   const sortedSubmissions = submissionsByDate
-    .filter(item => item.count > 0)
+    .filter((item) => item.count > 0)
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const totalSubmissions = submissionsByDate.reduce((sum, item) => sum + item.count, 0);
+  const totalSubmissions = submissionsByDate.reduce(
+    (sum, item) => sum + item.count,
+    0
+  );
   const totalActiveDays = sortedSubmissions.length;
-  const maxSubmissionsInDay = Math.max(...submissionsByDate.map(item => item.count));
-  const averageSubmissionsPerDay = totalActiveDays > 0 ? (totalSubmissions / totalActiveDays).toFixed(2) : 0;
+  const maxSubmissionsInDay = Math.max(
+    ...submissionsByDate.map((item) => item.count)
+  );
+  const averageSubmissionsPerDay =
+    totalActiveDays > 0 ? (totalSubmissions / totalActiveDays).toFixed(2) : 0;
 
   // Calculate streaks
   const streakData = calculateStreaks(sortedSubmissions);
-  
+
   // Calculate monthly and yearly statistics
   const monthlyStats = calculateMonthlyStats(submissionsByDate);
   const yearlyStats = calculateYearlyStats(submissionsByDate);
@@ -1054,17 +1090,111 @@ function calculateHeatmapStatistics(submissionsByDate) {
   };
 }
 
+const fetchLeetCodeQuestionCounts = async () => {
+  const graphqlQuery = {
+    query: `
+      query {
+        allQuestionsCount {
+          difficulty
+          count
+        }
+      }
+    `,
+  };
+
+  try {
+    const response = await axios.post(
+      "https://leetcode.com/graphql",
+      graphqlQuery,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const data = response.data.data.allQuestionsCount;
+
+    return {
+      easy: data.find((item) => item.difficulty === "Easy")?.count || 0,
+      medium: data.find((item) => item.difficulty === "Medium")?.count || 0,
+      hard: data.find((item) => item.difficulty === "Hard")?.count || 0,
+    };
+  } catch (err) {
+    console.error("LeetCode API Error:", err.message);
+    return null;
+  }
+};
+
+// const getMaxStreak = async (username) => {
+//   const query = {
+//     query: `
+//       query userProfileCalendar($username: String!) {
+//         userCalendar(username: $username) {
+//           submissionCalendar
+//         }
+//       }
+//     `,
+//     variables: { username }
+//   };
+
+//   try {
+//     const response = await axios.post('https://leetcode.com/graphql', query, {
+//       headers: {
+//         'Content-Type': 'application/json'
+//       }
+//     });
+
+//     const calendarData = response.data.data.userCalendar.submissionCalendar;
+//     const submissions = JSON.parse(calendarData);
+
+//     // Convert timestamps to sorted array of days with submissions
+//     const activeDays = Object.keys(submissions)
+//       .map(ts => parseInt(ts))
+//       .filter(ts => submissions[ts] > 0)
+//       .sort((a, b) => a - b);
+
+//     let maxStreak = 0;
+//     let currentStreak = 1;
+
+//     for (let i = 1; i < activeDays.length; i++) {
+//       const prev = activeDays[i - 1];
+//       const curr = activeDays[i];
+
+//       // If next day is exactly one day apart
+//       if (curr - prev === 86400) {
+//         currentStreak++;
+//         maxStreak = Math.max(maxStreak, currentStreak);
+//       } else {
+//         currentStreak = 1;
+//       }
+//     }
+
+//     return maxStreak;
+//   } catch (err) {
+//     console.error('Error fetching streak:', err.message);
+//     return null;
+//   }
+// };
+
 // Calculate current and longest streaks
-function calculateStreaks(sortedSubmissions) {
-  if (sortedSubmissions.length === 0) {
+function calculateStreaks(submissions) {
+  if (!Array.isArray(submissions) || submissions.length === 0) {
     return {
       currentStreak: 0,
       longestStreak: 0,
-      streakRanges: []
+      streakRanges: [],
     };
   }
 
-  const dates = sortedSubmissions.map(item => new Date(item.date));
+  // Ensure sorted by date ascending
+  submissions.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const dates = submissions.map((item) => ({
+    date: new Date(item.date),
+    count: item.count,
+  }));
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -1074,126 +1204,127 @@ function calculateStreaks(sortedSubmissions) {
   let streakRanges = [];
   let streakStart = null;
 
-  // Calculate current streak (working backwards from today)
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+  // ---------- Calculate Current Streak ----------
+  const lastDate = new Date(dates[dates.length - 1].date);
+  lastDate.setHours(0, 0, 0, 0);
 
-  // Find the most recent submission date
-  const lastSubmissionDate = dates[dates.length - 1];
-  lastSubmissionDate.setHours(0, 0, 0, 0);
+  const daysDiff = Math.floor((today - lastDate) / (1000 * 60 * 60 * 24));
 
-  // Check if last submission was today or yesterday
-  const daysSinceLastSubmission = Math.floor((today - lastSubmissionDate) / (1000 * 60 * 60 * 24));
-  
-  if (daysSinceLastSubmission <= 1) {
-    // Start calculating current streak
-    let checkDate = new Date(lastSubmissionDate);
+  if (daysDiff <= 1) {
     currentStreak = 1;
-    
-    // Go backwards to find consecutive days
+    let checkDate = new Date(lastDate);
+
     for (let i = dates.length - 2; i >= 0; i--) {
-      const prevDate = new Date(dates[i]);
+      const prevDate = new Date(dates[i].date);
       prevDate.setHours(0, 0, 0, 0);
-      
-      const expectedDate = new Date(checkDate);
-      expectedDate.setDate(expectedDate.getDate() - 1);
-      
-      if (prevDate.getTime() === expectedDate.getTime()) {
+
+      checkDate.setDate(checkDate.getDate() - 1);
+
+      if (prevDate.getTime() === checkDate.getTime()) {
         currentStreak++;
-        checkDate = prevDate;
       } else {
         break;
       }
     }
   }
 
-  // Calculate longest streak and all streak ranges
+  // ---------- Calculate Longest Streak & Ranges ----------
   for (let i = 0; i < dates.length; i++) {
-    const currentDate = new Date(dates[i]);
-    currentDate.setHours(0, 0, 0, 0);
-    
+    const currDate = new Date(dates[i].date);
+    currDate.setHours(0, 0, 0, 0);
+
     if (i === 0) {
       tempStreak = 1;
-      streakStart = currentDate;
+      streakStart = currDate;
     } else {
-      const prevDate = new Date(dates[i - 1]);
+      const prevDate = new Date(dates[i - 1].date);
       prevDate.setHours(0, 0, 0, 0);
-      
-      const expectedDate = new Date(prevDate);
-      expectedDate.setDate(expectedDate.getDate() + 1);
-      
-      if (currentDate.getTime() === expectedDate.getTime()) {
+
+      const expected = new Date(prevDate);
+      expected.setDate(expected.getDate() + 1);
+
+      if (currDate.getTime() === expected.getTime()) {
         tempStreak++;
       } else {
-        // Streak ended, record it if it's significant (>= 2 days)
         if (tempStreak >= 2) {
-          const streakEnd = new Date(dates[i - 1]);
+          const streakEnd = new Date(dates[i - 1].date);
           streakRanges.push({
-            startDate: streakStart.toISOString().split('T')[0],
-            endDate: streakEnd.toISOString().split('T')[0],
+            startDate: streakStart.toISOString().split("T")[0],
+            endDate: streakEnd.toISOString().split("T")[0],
             length: tempStreak,
-            submissions: sortedSubmissions.slice(i - tempStreak, i).reduce((sum, item) => sum + item.count, 0)
+            submissions: submissions
+              .slice(i - tempStreak, i)
+              .reduce((sum, d) => sum + d.count, 0),
           });
         }
-        
+
         longestStreak = Math.max(longestStreak, tempStreak);
         tempStreak = 1;
-        streakStart = currentDate;
+        streakStart = currDate;
       }
     }
   }
 
-  // Don't forget the last streak
+  // Check final streak
   if (tempStreak >= 2) {
-    const streakEnd = new Date(dates[dates.length - 1]);
+    const streakEnd = new Date(dates[dates.length - 1].date);
     streakRanges.push({
-      startDate: streakStart.toISOString().split('T')[0],
-      endDate: streakEnd.toISOString().split('T')[0],
+      startDate: streakStart.toISOString().split("T")[0],
+      endDate: streakEnd.toISOString().split("T")[0],
       length: tempStreak,
-      submissions: sortedSubmissions.slice(-tempStreak).reduce((sum, item) => sum + item.count, 0)
+      submissions: submissions
+        .slice(-tempStreak)
+        .reduce((sum, d) => sum + d.count, 0),
     });
   }
-  
+
   longestStreak = Math.max(longestStreak, tempStreak);
 
-  // Sort streak ranges by length (longest first)
+  // Sort streaks by length descending
   streakRanges.sort((a, b) => b.length - a.length);
 
   return {
     currentStreak,
     longestStreak,
-    streakRanges: streakRanges.slice(0, 10) // Return top 10 streaks
+    streakRanges: streakRanges.slice(0, 10),
   };
 }
 
 // Calculate monthly statistics
 function calculateMonthlyStats(submissionsByDate) {
   const monthlyStats = {};
-  
-  submissionsByDate.forEach(item => {
+
+  submissionsByDate.forEach((item) => {
     if (item.count > 0) {
       const date = new Date(item.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
+      const monthKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1
+      ).padStart(2, "0")}`;
+
       if (!monthlyStats[monthKey]) {
         monthlyStats[monthKey] = {
           totalSubmissions: 0,
           activeDays: 0,
           maxSubmissionsInDay: 0,
-          averageSubmissionsPerDay: 0
+          averageSubmissionsPerDay: 0,
         };
       }
-      
+
       monthlyStats[monthKey].totalSubmissions += item.count;
       monthlyStats[monthKey].activeDays += 1;
-      monthlyStats[monthKey].maxSubmissionsInDay = Math.max(monthlyStats[monthKey].maxSubmissionsInDay, item.count);
+      monthlyStats[monthKey].maxSubmissionsInDay = Math.max(
+        monthlyStats[monthKey].maxSubmissionsInDay,
+        item.count
+      );
     }
   });
 
   // Calculate averages
-  Object.keys(monthlyStats).forEach(month => {
+  Object.keys(monthlyStats).forEach((month) => {
     const stats = monthlyStats[month];
-    stats.averageSubmissionsPerDay = (stats.totalSubmissions / stats.activeDays).toFixed(2);
+    stats.averageSubmissionsPerDay = (
+      stats.totalSubmissions / stats.activeDays
+    ).toFixed(2);
   });
 
   return monthlyStats;
@@ -1202,32 +1333,37 @@ function calculateMonthlyStats(submissionsByDate) {
 // Calculate yearly statistics
 function calculateYearlyStats(submissionsByDate) {
   const yearlyStats = {};
-  
-  submissionsByDate.forEach(item => {
+
+  submissionsByDate.forEach((item) => {
     if (item.count > 0) {
       const year = new Date(item.date).getFullYear().toString();
-      
+
       if (!yearlyStats[year]) {
         yearlyStats[year] = {
           totalSubmissions: 0,
           activeDays: 0,
           maxSubmissionsInDay: 0,
           averageSubmissionsPerDay: 0,
-          months: new Set()
+          months: new Set(),
         };
       }
-      
+
       yearlyStats[year].totalSubmissions += item.count;
       yearlyStats[year].activeDays += 1;
-      yearlyStats[year].maxSubmissionsInDay = Math.max(yearlyStats[year].maxSubmissionsInDay, item.count);
+      yearlyStats[year].maxSubmissionsInDay = Math.max(
+        yearlyStats[year].maxSubmissionsInDay,
+        item.count
+      );
       yearlyStats[year].months.add(new Date(item.date).getMonth());
     }
   });
 
   // Calculate averages and convert months set to count
-  Object.keys(yearlyStats).forEach(year => {
+  Object.keys(yearlyStats).forEach((year) => {
     const stats = yearlyStats[year];
-    stats.averageSubmissionsPerDay = (stats.totalSubmissions / stats.activeDays).toFixed(2);
+    stats.averageSubmissionsPerDay = (
+      stats.totalSubmissions / stats.activeDays
+    ).toFixed(2);
     stats.activeMonths = stats.months.size;
     delete stats.months; // Remove the Set object
   });
@@ -1235,21 +1371,14 @@ function calculateYearlyStats(submissionsByDate) {
   return yearlyStats;
 }
 
-
-
-
-
-
-
-
-
-
 // Main controller function - Enhanced version of your original
 exports.getGfgDetails = async (req, res) => {
   const { username } = req.params;
 
   if (!username) {
-    return res.status(400).json({ success: false, message: "GFG username is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "GFG username is required" });
   }
 
   try {
@@ -1258,7 +1387,12 @@ exports.getGfgDetails = async (req, res) => {
     const { info, solvedStats } = profileResponse.data;
 
     if (!info || !info.userName) {
-      return res.status(404).json({ success: false, message: "GFG user not found or invalid username" });
+      return res
+        .status(404)
+        .json({
+          success: false,
+          message: "GFG user not found or invalid username",
+        });
     }
 
     const year = new Date().getFullYear();
@@ -1266,9 +1400,11 @@ exports.getGfgDetails = async (req, res) => {
     let heatmapData = [];
 
     try {
-      const calendarResponse = await axios.get(`${BASE_URL}/${username}/calendar?year=${year}`);
+      const calendarResponse = await axios.get(
+        `${BASE_URL}/${username}/calendar?year=${year}`
+      );
       calendar = calendarResponse.data;
-      
+
       // Generate heatmap data from calendar
       heatmapData = generateHeatmapData(calendar, year);
     } catch (calendarError) {
@@ -1314,7 +1450,10 @@ exports.getGfgDetails = async (req, res) => {
           badges: enhancedProfile.badges || [],
           following: enhancedProfile.following || 0,
           followers: enhancedProfile.followers || 0,
-          profileCompleteness: calculateProfileCompleteness(info, enhancedProfile),
+          profileCompleteness: calculateProfileCompleteness(
+            info,
+            enhancedProfile
+          ),
         },
         solvedStats,
         calendar,
@@ -1324,7 +1463,6 @@ exports.getGfgDetails = async (req, res) => {
         activityMetrics,
       },
     });
-
   } catch (error) {
     if (error.response && error.response.status === 404) {
       return res.status(404).json({
@@ -1350,18 +1488,20 @@ async function getEnhancedProfileData(username) {
     const $ = cheerio.load(response.data);
 
     return {
-      profileImageUrl: $('.profile_pic img').attr('src') || null,
-      bio: $('.profile_bio').text().trim() || null,
-      location: $('.location_details').text().trim() || null,
-      joinDate: $('.join_date').text().trim() || null,
-      following: parseInt($('.following_count').text().trim()) || 0,
-      followers: parseInt($('.followers_count').text().trim()) || 0,
-      badges: $('.badge_item').map((i, el) => $(el).text().trim()).get(),
+      profileImageUrl: $(".profile_pic img").attr("src") || null,
+      bio: $(".profile_bio").text().trim() || null,
+      location: $(".location_details").text().trim() || null,
+      joinDate: $(".join_date").text().trim() || null,
+      following: parseInt($(".following_count").text().trim()) || 0,
+      followers: parseInt($(".followers_count").text().trim()) || 0,
+      badges: $(".badge_item")
+        .map((i, el) => $(el).text().trim())
+        .get(),
       socialLinks: {
-        linkedin: $('.social_links .linkedin').attr('href') || null,
-        github: $('.social_links .github').attr('href') || null,
-        twitter: $('.social_links .twitter').attr('href') || null,
-      }
+        linkedin: $(".social_links .linkedin").attr("href") || null,
+        github: $(".social_links .github").attr("href") || null,
+        twitter: $(".social_links .twitter").attr("href") || null,
+      },
     };
   } catch (error) {
     console.warn("Error fetching enhanced profile data:", error.message);
@@ -1371,18 +1511,19 @@ async function getEnhancedProfileData(username) {
 
 // Helper function to calculate total questions count
 function calculateTotalQuestions(solvedStats) {
-  if (!solvedStats || typeof solvedStats !== 'object') {
+  if (!solvedStats || typeof solvedStats !== "object") {
     return 0;
   }
 
   let total = 0;
-  
+
   // Handle the actual structure: easy, medium, basic, hard objects with count property
   if (solvedStats.easy && solvedStats.medium && solvedStats.hard) {
-    total = (solvedStats.easy.count || 0) + 
-            (solvedStats.medium.count || 0) + 
-            (solvedStats.hard.count || 0) + 
-            (solvedStats.basic?.count || 0); // basic is optional
+    total =
+      (solvedStats.easy.count || 0) +
+      (solvedStats.medium.count || 0) +
+      (solvedStats.hard.count || 0) +
+      (solvedStats.basic?.count || 0); // basic is optional
   } else if (Array.isArray(solvedStats)) {
     total = solvedStats.reduce((sum, stat) => sum + (stat.count || 0), 0);
   } else if (solvedStats.total) {
@@ -1390,10 +1531,10 @@ function calculateTotalQuestions(solvedStats) {
   } else {
     // Fallback: sum all count values from objects
     total = Object.values(solvedStats).reduce((sum, value) => {
-      if (value && typeof value === 'object' && value.count) {
+      if (value && typeof value === "object" && value.count) {
         return sum + value.count;
       }
-      return sum + (typeof value === 'number' ? value : 0);
+      return sum + (typeof value === "number" ? value : 0);
     }, 0);
   }
 
@@ -1407,23 +1548,28 @@ function generateHeatmapData(calendar, year) {
   const endDate = new Date(year, 11, 31); // December 31st of the year
 
   // Generate data for each day of the year
-  for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-    const dateString = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+  for (
+    let date = new Date(startDate);
+    date <= endDate;
+    date.setDate(date.getDate() + 1)
+  ) {
+    const dateString = date.toISOString().split("T")[0]; // YYYY-MM-DD format
     const timestamp = date.getTime();
-    
+
     // Try multiple possible keys for calendar data
-    const dayData = calendar[dateString] || 
-                   calendar[timestamp] || 
-                   calendar[date.getDate() + '-' + (date.getMonth() + 1) + '-' + year] ||
-                   calendar[`${date.getDate()}-${date.getMonth() + 1}-${year}`] ||
-                   null;
-    
+    const dayData =
+      calendar[dateString] ||
+      calendar[timestamp] ||
+      calendar[date.getDate() + "-" + (date.getMonth() + 1) + "-" + year] ||
+      calendar[`${date.getDate()}-${date.getMonth() + 1}-${year}`] ||
+      null;
+
     let count = 0;
     let intensity = 0;
 
     if (dayData) {
       // Handle different possible structures of day data
-      if (typeof dayData === 'number') {
+      if (typeof dayData === "number") {
         count = dayData;
       } else if (dayData.count) {
         count = dayData.count;
@@ -1456,7 +1602,7 @@ function generateHeatmapData(calendar, year) {
       dayOfWeek: date.getDay(), // 0 = Sunday, 6 = Saturday
       week: Math.ceil((date - startDate) / (7 * 24 * 60 * 60 * 1000)),
       month: date.getMonth() + 1,
-      day: date.getDate()
+      day: date.getDate(),
     });
   }
 
@@ -1469,9 +1615,13 @@ function generateEmptyHeatmapData(year) {
   const startDate = new Date(year, 0, 1);
   const endDate = new Date(year, 11, 31);
 
-  for (let date = new Date(startDate); date <= endDate; date.setDate(date.getDate() + 1)) {
-    const dateString = date.toISOString().split('T')[0];
-    
+  for (
+    let date = new Date(startDate);
+    date <= endDate;
+    date.setDate(date.getDate() + 1)
+  ) {
+    const dateString = date.toISOString().split("T")[0];
+
     heatmapData.push({
       date: dateString,
       count: 0,
@@ -1479,7 +1629,7 @@ function generateEmptyHeatmapData(year) {
       dayOfWeek: date.getDay(),
       week: Math.ceil((date - startDate) / (7 * 24 * 60 * 60 * 1000)),
       month: date.getMonth() + 1,
-      day: date.getDate()
+      day: date.getDate(),
     });
   }
 
@@ -1490,14 +1640,20 @@ function generateEmptyHeatmapData(year) {
 function generateInsights(solvedStats, calendar, info) {
   const insights = [];
   const total = calculateTotalQuestions(solvedStats);
-  
+
   // Problem count insights
   if (total > 1000) {
-    insights.push("🏆 Problem Solving Legend! You've solved over 1000 problems!");
+    insights.push(
+      "🏆 Problem Solving Legend! You've solved over 1000 problems!"
+    );
   } else if (total > 500) {
-    insights.push("🏆 Problem Solving Master! You've solved over 500 problems.");
+    insights.push(
+      "🏆 Problem Solving Master! You've solved over 500 problems."
+    );
   } else if (total > 100) {
-    insights.push("💪 Great Progress! You're building strong problem-solving skills.");
+    insights.push(
+      "💪 Great Progress! You're building strong problem-solving skills."
+    );
   } else if (total > 50) {
     insights.push("🌟 Good Start! Keep practicing to improve further.");
   }
@@ -1520,13 +1676,19 @@ function generateInsights(solvedStats, calendar, info) {
   const hardCount = solvedStats.hard?.count || 0;
   const hardPercentage = total > 0 ? (hardCount / total) * 100 : 0;
   if (hardPercentage > 25) {
-    insights.push("🧠 Challenge Master! You tackle difficult problems regularly.");
+    insights.push(
+      "🧠 Challenge Master! You tackle difficult problems regularly."
+    );
   } else if (hardPercentage > 15) {
-    insights.push("🧠 Challenge Seeker! You're comfortable with hard problems.");
+    insights.push(
+      "🧠 Challenge Seeker! You're comfortable with hard problems."
+    );
   }
 
   // Activity insights
-  const activeDays = Object.values(calendar).filter(day => day && day.count > 0).length;
+  const activeDays = Object.values(calendar).filter(
+    (day) => day && day.count > 0
+  ).length;
   if (activeDays > 300) {
     insights.push("📅 Daily Coder! You practice almost every day.");
   } else if (activeDays > 200) {
@@ -1546,21 +1708,33 @@ function getDifficultyAnalysis(solvedStats) {
 
   return {
     breakdown: {
-      easy: { count: easy, percentage: total > 0 ? ((easy / total) * 100).toFixed(1) : 0 },
-      medium: { count: medium, percentage: total > 0 ? ((medium / total) * 100).toFixed(1) : 0 },
-      hard: { count: hard, percentage: total > 0 ? ((hard / total) * 100).toFixed(1) : 0 },
-      basic: { count: basic, percentage: total > 0 ? ((basic / total) * 100).toFixed(1) : 0 },
+      easy: {
+        count: easy,
+        percentage: total > 0 ? ((easy / total) * 100).toFixed(1) : 0,
+      },
+      medium: {
+        count: medium,
+        percentage: total > 0 ? ((medium / total) * 100).toFixed(1) : 0,
+      },
+      hard: {
+        count: hard,
+        percentage: total > 0 ? ((hard / total) * 100).toFixed(1) : 0,
+      },
+      basic: {
+        count: basic,
+        percentage: total > 0 ? ((basic / total) * 100).toFixed(1) : 0,
+      },
     },
-    difficultyScore: (basic * 1) + (easy * 2) + (medium * 5) + (hard * 10),
+    difficultyScore: basic * 1 + easy * 2 + medium * 5 + hard * 10,
     recommendation: getRecommendation(easy, medium, hard, total),
-    level: getDifficultyLevel(easy, medium, hard, total)
+    level: getDifficultyLevel(easy, medium, hard, total),
   };
 }
 
 // Helper function to get recommendation
 function getRecommendation(easy, medium, hard, total) {
   if (total === 0) return "Start with basic problems to build your foundation!";
-  
+
   const easyPercentage = (easy / total) * 100;
   const mediumPercentage = (medium / total) * 100;
   const hardPercentage = (hard / total) * 100;
@@ -1579,8 +1753,8 @@ function getRecommendation(easy, medium, hard, total) {
 
 // Helper function to determine difficulty level
 function getDifficultyLevel(easy, medium, hard, total) {
-  const score = (easy * 1) + (medium * 3) + (hard * 5);
-  
+  const score = easy * 1 + medium * 3 + hard * 5;
+
   if (score > 2000) return "Expert";
   if (score > 1000) return "Advanced";
   if (score > 500) return "Intermediate";
@@ -1591,25 +1765,35 @@ function getDifficultyLevel(easy, medium, hard, total) {
 // Helper function to calculate activity metrics
 function calculateActivityMetrics(calendar) {
   const days = Object.values(calendar);
-  const activeDays = days.filter(day => day && day.count > 0);
-  const totalProblems = activeDays.reduce((sum, day) => sum + (day.count || 0), 0);
-  
+  const activeDays = days.filter((day) => day && day.count > 0);
+  const totalProblems = activeDays.reduce(
+    (sum, day) => sum + (day.count || 0),
+    0
+  );
+
   // Calculate streaks
   const streaks = calculateStreaks(calendar);
-  
+
   // Calculate weekly pattern
   const weeklyPattern = calculateWeeklyPattern(calendar);
 
   return {
     totalActiveDays: activeDays.length,
     totalProblems: totalProblems,
-    averageProblemsPerDay: activeDays.length > 0 ? (totalProblems / activeDays.length).toFixed(2) : 0,
+    averageProblemsPerDay:
+      activeDays.length > 0
+        ? (totalProblems / activeDays.length).toFixed(2)
+        : 0,
     activeDaysPercentage: ((activeDays.length / days.length) * 100).toFixed(1),
-    maxProblemsInDay: Math.max(...activeDays.map(day => day.count || 0), 0),
+    maxProblemsInDay: Math.max(...activeDays.map((day) => day.count || 0), 0),
     currentStreak: streaks.current,
     maxStreak: streaks.max,
     weeklyPattern: weeklyPattern,
-    consistencyScore: calculateConsistencyScore(activeDays.length, days.length, streaks.max)
+    consistencyScore: calculateConsistencyScore(
+      activeDays.length,
+      days.length,
+      streaks.max
+    ),
   };
 }
 
@@ -1619,9 +1803,9 @@ function calculateStreaks(calendar) {
   let currentStreak = 0;
   let maxStreak = 0;
   let tempStreak = 0;
-  
-  const today = new Date().toISOString().split('T')[0];
-  
+
+  const today = new Date().toISOString().split("T")[0];
+
   for (const date of dates) {
     const dayData = calendar[date];
     if (dayData && dayData.count > 0) {
@@ -1631,7 +1815,7 @@ function calculateStreaks(calendar) {
       tempStreak = 0;
     }
   }
-  
+
   // Calculate current streak (from today backwards)
   const sortedDates = dates.sort().reverse();
   for (const date of sortedDates) {
@@ -1650,7 +1834,7 @@ function calculateStreaks(calendar) {
 // Helper function to calculate weekly pattern
 function calculateWeeklyPattern(calendar) {
   const weeklyData = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
-  
+
   Object.entries(calendar).forEach(([date, data]) => {
     if (data && data.count > 0) {
       const dayOfWeek = new Date(date).getDay();
@@ -1658,16 +1842,32 @@ function calculateWeeklyPattern(calendar) {
     }
   });
 
-  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const mostActiveDay = days[Object.keys(weeklyData).reduce((a, b) => 
-    weeklyData[a] > weeklyData[b] ? a : b
-  )];
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  const mostActiveDay =
+    days[
+      Object.keys(weeklyData).reduce((a, b) =>
+        weeklyData[a] > weeklyData[b] ? a : b
+      )
+    ];
 
   return {
     weeklyData,
     mostActiveDay,
     weekendActivity: weeklyData[0] + weeklyData[6],
-    weekdayActivity: weeklyData[1] + weeklyData[2] + weeklyData[3] + weeklyData[4] + weeklyData[5],
+    weekdayActivity:
+      weeklyData[1] +
+      weeklyData[2] +
+      weeklyData[3] +
+      weeklyData[4] +
+      weeklyData[5],
   };
 }
 
@@ -1686,10 +1886,12 @@ function calculateProfileCompleteness(info, enhancedProfile) {
     info.institution,
     enhancedProfile.bio,
     enhancedProfile.location,
-    enhancedProfile.profileImageUrl
+    enhancedProfile.profileImageUrl,
   ];
-  
-  const completedFields = fields.filter(field => field && field.trim() !== '').length;
+
+  const completedFields = fields.filter(
+    (field) => field && field.trim() !== ""
+  ).length;
   return ((completedFields / fields.length) * 100).toFixed(0);
 }
 
@@ -1697,22 +1899,26 @@ function calculateProfileCompleteness(info, enhancedProfile) {
 exports.getGfgHeatmap = async (req, res) => {
   const { username } = req.params;
   const { year } = req.query;
-  
+
   const targetYear = year ? parseInt(year) : new Date().getFullYear();
 
   if (!username) {
-    return res.status(400).json({ success: false, message: "GFG username is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "GFG username is required" });
   }
 
   try {
-    const calendarResponse = await axios.get(`${BASE_URL}/${username}/calendar?year=${targetYear}`);
+    const calendarResponse = await axios.get(
+      `${BASE_URL}/${username}/calendar?year=${targetYear}`
+    );
     const calendar = calendarResponse.data;
-    
+
     const heatmapData = generateHeatmapData(calendar, targetYear);
-    
+
     // Calculate summary statistics
     const totalDays = heatmapData.length;
-    const activeDays = heatmapData.filter(day => day.count > 0).length;
+    const activeDays = heatmapData.filter((day) => day.count > 0).length;
     const totalSolved = heatmapData.reduce((sum, day) => sum + day.count, 0);
     const maxStreak = calculateMaxStreak(heatmapData);
     const currentStreak = calculateCurrentStreak(heatmapData);
@@ -1729,11 +1935,10 @@ exports.getGfgHeatmap = async (req, res) => {
           totalSolved,
           maxStreak,
           currentStreak,
-          activityRate: ((activeDays / totalDays) * 100).toFixed(2)
-        }
-      }
+          activityRate: ((activeDays / totalDays) * 100).toFixed(2),
+        },
+      },
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -1763,13 +1968,13 @@ function calculateMaxStreak(heatmapData) {
 // Helper function to calculate current streak
 function calculateCurrentStreak(heatmapData) {
   let currentStreak = 0;
-  const today = new Date().toISOString().split('T')[0];
-  
+  const today = new Date().toISOString().split("T")[0];
+
   // Start from today and go backwards
   for (let i = heatmapData.length - 1; i >= 0; i--) {
     const day = heatmapData[i];
     if (day.date > today) continue; // Skip future dates
-    
+
     if (day.count > 0) {
       currentStreak++;
     } else {
@@ -1780,12 +1985,13 @@ function calculateCurrentStreak(heatmapData) {
   return currentStreak;
 }
 
-
 exports.getGfgInsights = async (req, res) => {
   const { username } = req.params;
 
   if (!username) {
-    return res.status(400).json({ success: false, message: "GFG username is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "GFG username is required" });
   }
 
   try {
@@ -1793,7 +1999,9 @@ exports.getGfgInsights = async (req, res) => {
     const { info, solvedStats } = profileResponse.data;
 
     const year = new Date().getFullYear();
-    const calendarResponse = await axios.get(`${BASE_URL}/${username}/calendar?year=${year}`);
+    const calendarResponse = await axios.get(
+      `${BASE_URL}/${username}/calendar?year=${year}`
+    );
     const calendar = calendarResponse.data;
 
     const insights = generateInsights(solvedStats, calendar, info);
@@ -1818,11 +2026,10 @@ exports.getGfgInsights = async (req, res) => {
             solvedStats.medium?.count || 0,
             solvedStats.hard?.count || 0,
             calculateTotalQuestions(solvedStats)
-          )
-        }
-      }
+          ),
+        },
+      },
     });
-
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -1831,10 +2038,6 @@ exports.getGfgInsights = async (req, res) => {
     });
   }
 };
-
-
-
-
 
 exports.getCodeforcesDetails = async (req, res) => {
   const { username } = req.params;
@@ -1926,11 +2129,7 @@ function generateCfHeatmap(submissions) {
   const today = new Date();
   const data = [];
 
-  for (
-    let d = new Date(startOfYear);
-    d <= today;
-    d.setDate(d.getDate() + 1)
-  ) {
+  for (let d = new Date(startOfYear); d <= today; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toISOString().split("T")[0];
     const count = heatmap[dateStr] || 0;
     let intensity = 0;
@@ -1955,14 +2154,13 @@ function generateCfHeatmap(submissions) {
   return data;
 }
 
-
 function generateDifficultyStats(submissions) {
   const difficultyStats = {
     "Easy (≤1200)": 0,
     "Medium (1201-1800)": 0,
     "Hard (1801-2400)": 0,
     "Very Hard (2401+)": 0,
-    "Unrated": 0,
+    Unrated: 0,
   };
 
   const solvedSet = new Set();
@@ -2001,7 +2199,7 @@ function getRecentlySolvedProblems(submissions, limit = 10) {
 
   // Sort submissions by creation time (newest first)
   const sortedSubmissions = submissions
-    .filter(submission => submission.verdict === "OK")
+    .filter((submission) => submission.verdict === "OK")
     .sort((a, b) => b.creationTimeSeconds - a.creationTimeSeconds);
 
   for (const submission of sortedSubmissions) {
@@ -2011,7 +2209,7 @@ function getRecentlySolvedProblems(submissions, limit = 10) {
     // Only add if we haven't seen this problem before
     if (!solvedSet.has(problemId)) {
       solvedSet.add(problemId);
-      
+
       const solvedDate = new Date(submission.creationTimeSeconds * 1000);
       const now = new Date();
       const daysAgo = Math.floor((now - solvedDate) / (1000 * 60 * 60 * 24));
@@ -2030,7 +2228,7 @@ function getRecentlySolvedProblems(submissions, limit = 10) {
         difficulty: getDifficultyLevel(problem.rating),
         programmingLanguage: submission.programmingLanguage,
         timeConsumedMillis: submission.timeConsumedMillis,
-        memoryConsumedBytes: submission.memoryConsumedBytes
+        memoryConsumedBytes: submission.memoryConsumedBytes,
       });
 
       // Stop when we reach the limit
@@ -2044,14 +2242,15 @@ function getRecentlySolvedProblems(submissions, limit = 10) {
     problems: solvedProblems,
     totalRecent: solvedProblems.length,
     summary: {
-      last7Days: solvedProblems.filter(p => p.daysAgo <= 7).length,
-      last30Days: solvedProblems.filter(p => p.daysAgo <= 30).length,
-      averageRating: solvedProblems
-        .filter(p => p.rating)
-        .reduce((sum, p, _, arr) => sum + p.rating / arr.length, 0) || 0,
+      last7Days: solvedProblems.filter((p) => p.daysAgo <= 7).length,
+      last30Days: solvedProblems.filter((p) => p.daysAgo <= 30).length,
+      averageRating:
+        solvedProblems
+          .filter((p) => p.rating)
+          .reduce((sum, p, _, arr) => sum + p.rating / arr.length, 0) || 0,
       mostUsedLanguage: getMostUsedLanguage(solvedProblems),
-      topTags: getTopTags(solvedProblems)
-    }
+      topTags: getTopTags(solvedProblems),
+    },
   };
 }
 
@@ -2067,65 +2266,67 @@ function getDifficultyLevel(rating) {
 // Helper to get most used programming language
 function getMostUsedLanguage(problems) {
   const langCount = {};
-  problems.forEach(p => {
-    langCount[p.programmingLanguage] = (langCount[p.programmingLanguage] || 0) + 1;
+  problems.forEach((p) => {
+    langCount[p.programmingLanguage] =
+      (langCount[p.programmingLanguage] || 0) + 1;
   });
-  
-  return Object.entries(langCount)
-    .sort(([,a], [,b]) => b - a)[0]?.[0] || "N/A";
+
+  return (
+    Object.entries(langCount).sort(([, a], [, b]) => b - a)[0]?.[0] || "N/A"
+  );
 }
 
 // Helper to get top problem tags
 function getTopTags(problems, limit = 5) {
   const tagCount = {};
-  problems.forEach(p => {
-    p.tags.forEach(tag => {
+  problems.forEach((p) => {
+    p.tags.forEach((tag) => {
       tagCount[tag] = (tagCount[tag] || 0) + 1;
     });
   });
-  
+
   return Object.entries(tagCount)
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, limit)
     .map(([tag, count]) => ({ tag, count }));
 }
 
-
-
 exports.getHackerRankDetails = async (req, res) => {
   const { username } = req.params;
-  
+
   if (!username) {
-    return res.status(400).json({ 
-      success: false, 
-      message: "Username required" 
+    return res.status(400).json({
+      success: false,
+      message: "Username required",
     });
   }
 
   const profileUrl = `https://www.hackerrank.com/profile/${username}`;
-  
+
   try {
     const { data: html } = await axios.get(profileUrl, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.5",
         "Accept-Encoding": "gzip, deflate, br",
-        "Connection": "keep-alive",
+        Connection: "keep-alive",
         "Upgrade-Insecure-Requests": "1",
         "Sec-Fetch-Dest": "document",
         "Sec-Fetch-Mode": "navigate",
         "Sec-Fetch-Site": "none",
-        "Cache-Control": "max-age=0"
+        "Cache-Control": "max-age=0",
       },
       timeout: 10000,
-      validateStatus: (status) => status < 500 // Accept 4xx errors to handle them gracefully
+      validateStatus: (status) => status < 500, // Accept 4xx errors to handle them gracefully
     });
 
     if (!html || html.length < 100) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "Profile not found or empty response" 
+      return res.status(404).json({
+        success: false,
+        message: "Profile not found or empty response",
       });
     }
 
@@ -2142,7 +2343,7 @@ exports.getHackerRankDetails = async (req, res) => {
       // Pattern 5: JSON-LD structured data
       /<script[^>]*type="application\/ld\+json"[^>]*>(\{.+?\})<\/script>/s,
       // Pattern 6: Profile specific data
-      /<script[^>]*>[^<]*"profile"[^<]*(\{[^}]*"username"[^}]*\})[^<]*<\/script>/s
+      /<script[^>]*>[^<]*"profile"[^<]*(\{[^}]*"username"[^}]*\})[^<]*<\/script>/s,
     ];
 
     let parsed = null;
@@ -2171,13 +2372,14 @@ exports.getHackerRankDetails = async (req, res) => {
         return res.status(200).json({
           success: true,
           message: "Limited data extracted from HTML",
-          data: basicInfo
+          data: basicInfo,
         });
       }
-      
-      return res.status(404).json({ 
-        success: false, 
-        message: "Could not extract user data. Profile may be private or structure changed." 
+
+      return res.status(404).json({
+        success: false,
+        message:
+          "Could not extract user data. Profile may be private or structure changed.",
       });
     }
 
@@ -2200,18 +2402,18 @@ exports.getHackerRankDetails = async (req, res) => {
     }
 
     if (!userData) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User data structure not recognized" 
+      return res.status(404).json({
+        success: false,
+        message: "User data structure not recognized",
       });
     }
 
     const user = userData.user || userData;
-    
+
     if (!user || !user.username) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "No valid user data found" 
+      return res.status(404).json({
+        success: false,
+        message: "No valid user data found",
       });
     }
 
@@ -2224,13 +2426,20 @@ exports.getHackerRankDetails = async (req, res) => {
 
     // Calculate statistics
     const totalScore = domains.reduce((sum, d) => sum + (d.score || 0), 0);
-    const topDomain = domains.reduce((best, curr) => 
-      (curr.score || 0) > (best?.score || 0) ? curr : best, null);
+    const topDomain = domains.reduce(
+      (best, curr) => ((curr.score || 0) > (best?.score || 0) ? curr : best),
+      null
+    );
 
     // Calculate additional metrics
-    const solvedChallenges = submissions.filter(s => s.status === 'accepted').length;
+    const solvedChallenges = submissions.filter(
+      (s) => s.status === "accepted"
+    ).length;
     const totalSubmissions = submissions.length;
-    const successRate = totalSubmissions > 0 ? (solvedChallenges / totalSubmissions * 100).toFixed(1) : 0;
+    const successRate =
+      totalSubmissions > 0
+        ? ((solvedChallenges / totalSubmissions) * 100).toFixed(1)
+        : 0;
 
     const response = {
       success: true,
@@ -2238,14 +2447,14 @@ exports.getHackerRankDetails = async (req, res) => {
       data: {
         profile: {
           username: user.username,
-          name: user.name || user.display_name || '',
-          avatar: user.avatar || user.profile_image || '',
-          country: user.country || '',
-          company: user.company || '',
-          school: user.school || '',
+          name: user.name || user.display_name || "",
+          avatar: user.avatar || user.profile_image || "",
+          country: user.country || "",
+          company: user.company || "",
+          school: user.school || "",
           created_at: user.created_at || null,
           followers: user.followers_count || 0,
-          following: user.following_count || 0
+          following: user.following_count || 0,
         },
         statistics: {
           totalScore,
@@ -2255,65 +2464,64 @@ exports.getHackerRankDetails = async (req, res) => {
           totalSubmissions,
           successRate: parseFloat(successRate),
           rank: user.rank || null,
-          level: user.level || null
+          level: user.level || null,
         },
-        domains: domains.map(d => ({
+        domains: domains.map((d) => ({
           name: d.name,
           score: d.score || 0,
           rank: d.rank || null,
           level: d.level || null,
-          problems_solved: d.problems_solved || 0
+          problems_solved: d.problems_solved || 0,
         })),
-        badges: badges.map(b => ({
-          name: b.name || '',
-          description: b.description || '',
-          level: b.level || '',
-          earned_date: b.earned_date || null
+        badges: badges.map((b) => ({
+          name: b.name || "",
+          description: b.description || "",
+          level: b.level || "",
+          earned_date: b.earned_date || null,
         })),
         recentActivity: {
           contestsParticipated: contests.length,
-          recentSubmissions: submissions.slice(0, 10).map(s => ({
-            challenge: s.challenge_name || '',
-            status: s.status || '',
+          recentSubmissions: submissions.slice(0, 10).map((s) => ({
+            challenge: s.challenge_name || "",
+            status: s.status || "",
             score: s.score || 0,
-            language: s.language || '',
-            submitted_at: s.submitted_at || null
-          }))
-        }
-      }
+            language: s.language || "",
+            submitted_at: s.submitted_at || null,
+          })),
+        },
+      },
     };
 
     return res.status(200).json(response);
-
   } catch (err) {
     console.error("HackerRank fetch error:", err.message);
-    
+
     // Handle specific error types
-    if (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED') {
-      return res.status(503).json({ 
-        success: false, 
-        message: "HackerRank service unavailable" 
-      });
-    }
-    
-    if (err.response?.status === 404) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "HackerRank profile not found" 
-      });
-    }
-    
-    if (err.response?.status === 403) {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Access denied. Profile may be private or blocked." 
+    if (err.code === "ENOTFOUND" || err.code === "ECONNREFUSED") {
+      return res.status(503).json({
+        success: false,
+        message: "HackerRank service unavailable",
       });
     }
 
-    return res.status(500).json({ 
-      success: false, 
+    if (err.response?.status === 404) {
+      return res.status(404).json({
+        success: false,
+        message: "HackerRank profile not found",
+      });
+    }
+
+    if (err.response?.status === 403) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Profile may be private or blocked.",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
       message: "Failed to fetch HackerRank profile",
-      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+      error: process.env.NODE_ENV === "development" ? err.message : undefined,
     });
   }
 };
@@ -2322,21 +2530,25 @@ exports.getHackerRankDetails = async (req, res) => {
 function extractBasicInfoFromHTML(html, username) {
   try {
     // Try to extract basic profile info from HTML structure
-    const nameMatch = html.match(/<h1[^>]*class="[^"]*profile-heading[^"]*"[^>]*>([^<]+)<\/h1>/i) ||
-                      html.match(/<div[^>]*class="[^"]*username[^"]*"[^>]*>([^<]+)<\/div>/i);
-    
-    const avatarMatch = html.match(/<img[^>]*src="([^"]*avatar[^"]*)"[^>]*>/i) ||
-                        html.match(/<img[^>]*class="[^"]*avatar[^"]*"[^>]*src="([^"]*)"[^>]*>/i);
+    const nameMatch =
+      html.match(
+        /<h1[^>]*class="[^"]*profile-heading[^"]*"[^>]*>([^<]+)<\/h1>/i
+      ) ||
+      html.match(/<div[^>]*class="[^"]*username[^"]*"[^>]*>([^<]+)<\/div>/i);
+
+    const avatarMatch =
+      html.match(/<img[^>]*src="([^"]*avatar[^"]*)"[^>]*>/i) ||
+      html.match(/<img[^>]*class="[^"]*avatar[^"]*"[^>]*src="([^"]*)"[^>]*>/i);
 
     if (nameMatch || avatarMatch) {
       return {
         profile: {
           username: username,
-          name: nameMatch ? nameMatch[1].trim() : '',
-          avatar: avatarMatch ? avatarMatch[1] : '',
-          country: '',
-          company: '',
-          school: ''
+          name: nameMatch ? nameMatch[1].trim() : "",
+          avatar: avatarMatch ? avatarMatch[1] : "",
+          country: "",
+          company: "",
+          school: "",
         },
         statistics: {
           totalScore: 0,
@@ -2346,17 +2558,17 @@ function extractBasicInfoFromHTML(html, username) {
           totalSubmissions: 0,
           successRate: 0,
           rank: null,
-          level: null
+          level: null,
         },
         domains: [],
         badges: [],
         recentActivity: {
           contestsParticipated: 0,
-          recentSubmissions: []
-        }
+          recentSubmissions: [],
+        },
       };
     }
-    
+
     return null;
   } catch (e) {
     console.error("HTML parsing error:", e.message);

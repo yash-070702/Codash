@@ -15,17 +15,19 @@ Chart.Chart.register(
 
 const LeetCode = () => {
   const [selectedSegment, setSelectedSegment] = useState(null);
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [leetCodeData, setLeetCodeData] = useState(null);
-  
-  const {user} = useSelector((state) => state.profile);
-  const {token} = useSelector((state) => state.auth);
+  const [questions, setQuestions] = useState([]);
+
+  const { user } = useSelector((state) => state.profile);
+  const { token } = useSelector((state) => state.auth);
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
 
   // Check if username exists
-  const hasUsername = user?.leetCodeURL && user.leetCodeURL.trim() !== '';
+  const hasUsername = user?.leetCodeURL && user.leetCodeURL.trim() !== "";
 
   // Fetch LeetCode details
   useEffect(() => {
@@ -34,11 +36,12 @@ const LeetCode = () => {
     const fetchLeetCodeDetails = async () => {
       setIsLoading(true);
       setError(null);
-      
+
       try {
         const username = user.leetCodeURL;
         const details = await getLeeCodeDetails(username, token);
-        setLeetCodeData(details);;
+        setLeetCodeData(details);
+        setQuestions(details?.data?.latestQuestions || []);
       } catch (error) {
         console.error("Error fetching LeetCode details:", error);
         setError("Failed to fetch LeetCode data. Please try again.");
@@ -64,23 +67,29 @@ const LeetCode = () => {
               LeetCode Analytics
             </h1>
             <p className="text-gray-400 text-lg mb-8 max-w-md">
-              Connect your LeetCode profile to view your coding progress and performance analytics
+              Connect your LeetCode profile to view your coding progress and
+              performance analytics
             </p>
           </div>
 
           <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-8 shadow-lg border border-gray-700 max-w-md w-full">
             <div className="flex items-center justify-center mb-6">
               <AlertCircle className="w-8 h-8 text-yellow-400 mr-3" />
-              <h2 className="text-xl font-semibold text-white">Username Required</h2>
+              <h2 className="text-xl font-semibold text-white">
+                Username Required
+              </h2>
             </div>
-            
+
             <p className="text-gray-300 mb-6 text-center">
-              Please provide your LeetCode username in your profile settings to view your analytics dashboard.
+              Please provide your LeetCode username in your profile settings to
+              view your analytics dashboard.
             </p>
 
             <div className="space-y-4">
               <div className="bg-gray-700 rounded-lg p-4">
-                <h3 className="text-sm font-medium text-gray-300 mb-2">What you'll get:</h3>
+                <h3 className="text-sm font-medium text-gray-300 mb-2">
+                  What you'll get:
+                </h3>
                 <ul className="text-sm text-gray-400 space-y-1">
                   <li>• Problem solving statistics</li>
                   <li>• Activity heatmap</li>
@@ -89,8 +98,8 @@ const LeetCode = () => {
                 </ul>
               </div>
 
-              <button 
-                onClick={() => window.location.href = '/edit-profile'}
+              <button
+                onClick={() => (window.location.href = "/edit-profile")}
                 className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 hover:scale-105"
               >
                 Go to Profile Settings
@@ -129,7 +138,9 @@ const LeetCode = () => {
             <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <RefreshCw className="w-10 h-10 text-white animate-spin" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-4">Loading Your Data</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Loading Your Data
+            </h2>
             <p className="text-gray-400 text-lg mb-8">
               Please wait while we fetch your LeetCode statistics...
             </p>
@@ -142,17 +153,26 @@ const LeetCode = () => {
                 <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
                 <div className="h-4 bg-gray-700 rounded w-1/2"></div>
               </div>
-              
+
               <div className="flex items-center justify-center py-4">
                 <div className="flex space-x-1">
                   <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  <div
+                    className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.1s" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
                 </div>
               </div>
-              
+
               <p className="text-gray-400 text-sm text-center">
-                Fetching data for: <span className="text-white font-medium">{user?.leetCodeURL}</span>
+                Fetching data for:{" "}
+                <span className="text-white font-medium">
+                  {user?.leetCodeURL}
+                </span>
               </p>
             </div>
           </div>
@@ -173,13 +193,11 @@ const LeetCode = () => {
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Unable to Load Data
             </h1>
-            <p className="text-gray-400 text-lg mb-8 max-w-md">
-              {error}
-            </p>
+            <p className="text-gray-400 text-lg mb-8 max-w-md">{error}</p>
           </div>
 
           <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-8 shadow-lg border border-gray-700 max-w-md w-full">
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-lg transition-all duration-200 hover:scale-105"
             >
@@ -208,46 +226,56 @@ const LeetCode = () => {
   const baseStats = [
     {
       level: "Easy",
-      solved: 45,
-      total: 120,
+      solved: leetCodeData?.data?.difficultyWiseSolved?.Easy,
+      total: leetCodeData?.leetCodeStats?.easy,
       color: "text-green-400",
       bgColor: "bg-green-400",
       strokeColor: "stroke-green-400",
       chartColor: "#4ade80",
       details: {
-        accuracy: "85%",
-        avgTime: "12 min",
-        recentSolved: 8,
+        accuracy:
+          Math.round(
+            (leetCodeData?.data?.difficultyWiseSolved?.Easy /
+              leetCodeData?.leetCodeStats?.easy) *
+              100
+          ) + "%",
+
         topics: ["Arrays", "Strings", "Hash Tables"],
       },
     },
     {
       level: "Medium",
-      solved: 32,
-      total: 80,
+      solved: leetCodeData?.data?.difficultyWiseSolved?.Medium,
+      total: leetCodeData?.leetCodeStats?.medium,
       color: "text-yellow-400",
       bgColor: "bg-yellow-400",
       strokeColor: "stroke-yellow-400",
       chartColor: "#facc15",
       details: {
-        accuracy: "72%",
-        avgTime: "28 min",
-        recentSolved: 5,
+        accuracy:
+          Math.round(
+            (leetCodeData?.data?.difficultyWiseSolved?.Medium /
+              leetCodeData?.leetCodeStats?.medium) *
+              100
+          ) + "%",
         topics: ["Trees", "DP", "Graphs"],
       },
     },
     {
       level: "Hard",
-      solved: 8,
-      total: 30,
+      solved: leetCodeData?.data?.difficultyWiseSolved?.Hard,
+      total: leetCodeData?.leetCodeStats?.hard,
       color: "text-red-400",
       bgColor: "bg-red-400",
       strokeColor: "stroke-red-400",
       chartColor: "#f87171",
       details: {
-        accuracy: "58%",
-        avgTime: "45 min",
-        recentSolved: 2,
+        accuracy:
+          Math.round(
+            (leetCodeData?.data?.difficultyWiseSolved?.Hard /
+              leetCodeData?.leetCodeStats?.hard) *
+              100
+          ) + "%",
         topics: ["Advanced Algorithms", "System Design"],
       },
     },
@@ -256,7 +284,10 @@ const LeetCode = () => {
   // Calculate totals dynamically
   const totalSolved = baseStats.reduce((acc, stat) => acc + stat.solved, 0);
   const totalQuestions = baseStats.reduce((acc, stat) => acc + stat.total, 0);
-  const totalRecentSolved = baseStats.reduce((acc, stat) => acc + stat.details.recentSolved, 0);
+  const totalRecentSolved = baseStats.reduce(
+    (acc, stat) => acc + stat.details.recentSolved,
+    0
+  );
 
   const questionStats = [
     ...baseStats,
@@ -279,8 +310,8 @@ const LeetCode = () => {
 
   const LeetCodeDonut = () => {
     // Filter out the "Total" entry for chart display
-    const chartData = questionStats.filter(stat => stat.level !== "Total");
-    
+    const chartData = questionStats.filter((stat) => stat.level !== "Total");
+
     const chartTotalSolved = chartData.reduce(
       (acc, stat) => acc + stat.solved,
       0
@@ -423,18 +454,6 @@ const LeetCode = () => {
                   {selectedSegment.details.accuracy}
                 </span>
               </div>
-              <div className="bg-gray-800 p-3 rounded-lg">
-                <span className="text-gray-400 block text-xs">Avg Time</span>
-                <span className="text-white font-semibold text-lg">
-                  {selectedSegment.details.avgTime}
-                </span>
-              </div>
-              <div className="bg-gray-800 p-3 rounded-lg">
-                <span className="text-gray-400 block text-xs">This Week</span>
-                <span className="text-white font-semibold text-lg">
-                  {selectedSegment.details.recentSolved}
-                </span>
-              </div>
             </div>
             <div>
               <span className="text-gray-400 text-sm font-medium">
@@ -457,6 +476,42 @@ const LeetCode = () => {
     );
   };
 
+const toggleViewAll = (e) => {
+    e.preventDefault();
+    setShowAllQuestions(!showAllQuestions);
+  };
+  // Get questions to display based on current state
+  const displayedQuestions = showAllQuestions
+    ? questions
+    : questions.slice(0, 3);
+
+  // Function to handle topic tag click
+  const handleTopicClick = (e, slug) => {
+    e.stopPropagation(); // Prevent row click when clicking on topic
+    // Navigate to topic page
+    window.open(`/topics/${slug}`, "_blank");
+  };
+
+  // Function to handle question click
+  const handleQuestionClick = (url) => {
+    // In a real application, you would use react-router or Next.js router
+    // For demo purposes, we'll simulate navigation
+    window.open(url, "_blank");
+    // Or use: window.location.href = url; for same tab navigation
+  };
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty) {
+      case "Easy":
+        return "bg-green-500/20 text-green-400";
+      case "Medium":
+        return "bg-yellow-500/20 text-yellow-400";
+      case "Hard":
+        return "bg-red-500/20 text-red-400";
+      default:
+        return "bg-gray-500/20 text-gray-400";
+    }
+  };
+
   // Main dashboard render (your existing JSX)
   return (
     <div className="bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 text-white min-h-screen p-4 md:p-6">
@@ -473,7 +528,7 @@ const LeetCode = () => {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-             <img src={leetCodeData?.data?.avatar}/>
+                <img src={leetCodeData?.data?.avatar} />
               </div>
             </div>
           </div>
@@ -487,7 +542,9 @@ const LeetCode = () => {
                 <p className="text-green-400 text-sm font-medium mb-1">
                   Easy Solved
                 </p>
-                <h1 className="text-2xl font-bold text-white">{leetCodeData?.data?.difficultyWiseSolved?.Easy}</h1>
+                <h1 className="text-2xl font-bold text-white">
+                  {leetCodeData?.data?.difficultyWiseSolved?.Easy}
+                </h1>
               </div>
             </div>
 
@@ -499,7 +556,9 @@ const LeetCode = () => {
                 <p className="text-yellow-400 text-sm font-medium mb-1">
                   Medium Solved
                 </p>
-                <h1 className="text-2xl font-bold text-white">{leetCodeData?.data?.difficultyWiseSolved?.Medium}</h1>
+                <h1 className="text-2xl font-bold text-white">
+                  {leetCodeData?.data?.difficultyWiseSolved?.Medium}
+                </h1>
               </div>
             </div>
 
@@ -511,7 +570,9 @@ const LeetCode = () => {
                 <p className="text-red-400 text-sm font-medium mb-1">
                   Hard Solved
                 </p>
-                <h1 className="text-2xl font-bold text-white">{leetCodeData?.data?.difficultyWiseSolved?.Hard}</h1>
+                <h1 className="text-2xl font-bold text-white">
+                  {leetCodeData?.data?.difficultyWiseSolved?.Hard}
+                </h1>
               </div>
             </div>
 
@@ -523,7 +584,9 @@ const LeetCode = () => {
                 <p className="text-blue-400 text-sm font-medium mb-1">
                   Global Ranking
                 </p>
-                <h1 className="text-2xl font-bold text-white">{leetCodeData?.data?.globalRanking}</h1>
+                <h1 className="text-2xl font-bold text-white">
+                  {leetCodeData?.data?.globalRanking}
+                </h1>
               </div>
             </div>
 
@@ -540,17 +603,26 @@ const LeetCode = () => {
                 <div className="space-y-3 flex-1">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm">Username</span>
-                    <span className="text-white font-medium">{user?.leetCodeURL || 'N/A'}</span>
+                    <span className="text-white font-medium">
+                      {user?.leetCodeURL || "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm">
                       Total Submissions
                     </span>
-                    <span className="text-white font-medium">{leetCodeData?.data?.heatmap?.statistics?.totalSubmissions}</span>
+                    <span className="text-white font-medium">
+                      {
+                        leetCodeData?.data?.heatmap?.statistics
+                          ?.totalSubmissions
+                      }
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm">Active Days</span>
-                    <span className="text-white font-medium">{leetCodeData?.data?.heatmap?.statistics?.totalActiveDays}</span>
+                    <span className="text-white font-medium">
+                      {leetCodeData?.data?.heatmap?.statistics?.totalActiveDays}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm">
@@ -577,7 +649,6 @@ const LeetCode = () => {
               <h3 className="text-base md:text-lg font-bold text-white">
                 Question Stats
               </h3>
-              <MoreHorizontal className="w-4 h-4 text-gray-400 cursor-pointer hover:text-white transition-colors" />
             </div>
             <LeetCodeDonut />
           </div>
@@ -591,54 +662,78 @@ const LeetCode = () => {
               <h3 className="text-base md:text-lg font-bold text-white">
                 Recent Solved Questions
               </h3>
-              <button className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                View All
+              <button onClick={toggleViewAll} className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+                {showAllQuestions ? "View Less" : "View All"}
               </button>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full min-w-full">
+              <table className="w-full min-w-[700px]">
                 <thead>
                   <tr className="border-b border-gray-700">
-                    <th className="text-left py-3 text-sm font-medium text-gray-400 whitespace-nowrap">
+                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-400 whitespace-nowrap w-16">
                       ID
                     </th>
-                    <th className="text-left py-3 text-sm font-medium text-gray-400 whitespace-nowrap">
+                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-400 w-1/3 min-w-[180px]">
                       Title
                     </th>
-                    <th className="text-left py-3 text-sm font-medium text-gray-400 whitespace-nowrap">
+                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-400 whitespace-nowrap w-20">
                       Difficulty
                     </th>
-                    <th className="text-left py-3 text-sm font-medium text-gray-400 whitespace-nowrap">
+                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-400 whitespace-nowrap w-20">
                       Acceptance
                     </th>
-                    <th className="text-left py-3 text-sm font-medium text-gray-400 whitespace-nowrap">
-                      Topics
+                    <th className="text-left py-3 px-2 text-sm font-medium text-gray-400 w-1/3 min-w-[160px]">
+                      Topic Tags
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-700">
-                  <tr className="hover:bg-gray-700/50 transition-colors">
-                    <td className="py-3 text-sm text-gray-300">39.4%</td>
-                    <td className="py-3 text-sm text-gray-300">
-                      Linked List, Math
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-gray-700/50 transition-colors">
-                    <td className="py-3 text-sm text-gray-300">#3</td>
-                    <td className="py-3 text-sm text-white font-medium">
-                      Longest Substring
-                    </td>
-                    <td className="py-3">
-                      <span className="px-2 py-1 text-xs bg-yellow-500/20 text-yellow-400 rounded-full">
-                        Medium
-                      </span>
-                    </td>
-                    <td className="py-3 text-sm text-gray-300">33.8%</td>
-                    <td className="py-3 text-sm text-gray-300">
-                      String, Sliding Window
-                    </td>
-                  </tr>
+                  {displayedQuestions.map((question, index) => (
+                    <tr
+                      key={question.id}
+                      className="hover:bg-gray-700/50 transition-colors cursor-pointer"
+                      onClick={() => handleQuestionClick(question.url)}
+                    >
+                      <td className="py-3 px-2 text-sm text-gray-300 font-mono">
+                        {question.id}
+                      </td>
+                      <td className="py-3 px-2 text-sm text-white font-medium hover:text-blue-400 transition-colors">
+                        <div
+                          className="truncate max-w-[200px] sm:max-w-[250px] md:max-w-[300px] lg:max-w-[350px]"
+                          title={question.title}
+                        >
+                          {question.title}
+                        </div>
+                      </td>
+                      <td className="py-3 px-2">
+                        <span
+                          className={`px-2 py-1 text-xs rounded-full whitespace-nowrap ${getDifficultyColor(
+                            question.difficulty
+                          )}`}
+                        >
+                          {question.difficulty}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-sm text-gray-300 whitespace-nowrap">
+                        {question.acceptance}
+                      </td>
+                      <td className="py-3 px-2 text-sm text-gray-300">
+                        <div className="flex flex-wrap gap-1 max-w-[200px] sm:max-w-[250px] md:max-w-[300px]">
+                          {question.topicTags.map((tag, tagIndex) => (
+                            <span
+                              key={tag.slug}
+                              onClick={(e) => handleTopicClick(e, tag.slug)}
+                              className="px-2 py-1 text-xs bg-blue-500/20 text-blue-400 rounded-full hover:bg-blue-500/30 cursor-pointer transition-colors whitespace-nowrap"
+                              title={tag.name}
+                            >
+                              {tag.name}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
