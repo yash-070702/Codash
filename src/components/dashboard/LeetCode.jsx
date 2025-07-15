@@ -52,7 +52,6 @@ const LeetCode = () => {
 
     fetchLeetCodeDetails();
   }, [hasUsername, user?.leetCodeURL, token]);
-  //  console.log("LeetCode Details:", leetCodeData)
 
   // No Username Screen
   const NoUsernameScreen = () => (
@@ -626,9 +625,9 @@ const toggleViewAll = (e) => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm">
-                      Longest Streak
+                      Max Subm a Day 
                     </span>
-                    <span className="text-white font-medium">23 days</span>
+                    <span className="text-white font-medium">{leetCodeData?.data?.heatmap?.statistics?.maxSubmissionsInDay}</span>
                   </div>
                 </div>
               </div>
@@ -640,7 +639,8 @@ const toggleViewAll = (e) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 md:mb-8">
           {/* Activity Heatmap */}
           <div className="lg:col-span-2 bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-4 md:p-6 shadow-lg border border-gray-700">
-            <ActivityHeatmap />
+            <ActivityHeatmap heatmapData={leetCodeData?.data?.heatmap} />
+
           </div>
 
           {/* Question Statistics */}
@@ -716,7 +716,7 @@ const toggleViewAll = (e) => {
                         </span>
                       </td>
                       <td className="py-3 px-2 text-sm text-gray-300 whitespace-nowrap">
-                        {question.acceptance}
+                        {question.acceptanceRate}
                       </td>
                       <td className="py-3 px-2 text-sm text-gray-300">
                         <div className="flex flex-wrap gap-1 max-w-[200px] sm:max-w-[250px] md:max-w-[300px]">

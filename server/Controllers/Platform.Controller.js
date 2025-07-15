@@ -508,6 +508,11 @@ exports.getCodeChefHeatmap = async (req, res) => {
   }
 };
 
+
+
+
+
+
 exports.getLeetCodeDetails = async (req, res) => {
   const { username } = req.params;
 
@@ -604,7 +609,7 @@ exports.getLeetCodeDetails = async (req, res) => {
       console.warn("Could not fetch recent submissions:", err.message);
     }
 
-    // Step 4: Fetch submission calendar for heatmap
+    // Step 4: Fetch comprehensive submission calendar for heatmap
     let heatmap = {
       activeYears: [],
       submissionsByDate: [],
@@ -622,7 +627,8 @@ exports.getLeetCodeDetails = async (req, res) => {
     };
 
     try {
-      const calendarQuery = {
+      // First get the active years to know what data to fetch
+      const activeYearsQuery = {
         query: `
           query userCalendar($username: String!) {
             matchedUser(username: $username) {
@@ -636,32 +642,74 @@ exports.getLeetCodeDetails = async (req, res) => {
         variables: { username },
       };
 
-      const calendarResponse = await axios.post(graphqlUrl, calendarQuery, {
+      const activeYearsResponse = await axios.post(graphqlUrl, activeYearsQuery, {
         headers: { "Content-Type": "application/json" },
       });
 
-      const calendarData =
-        calendarResponse.data?.data?.matchedUser?.userCalendar;
+      const calendarData = activeYearsResponse.data?.data?.matchedUser?.userCalendar;
 
-      if (calendarData?.submissionCalendar) {
-        const rawCalendar = JSON.parse(calendarData.submissionCalendar);
-        const submissionsByDate = Object.entries(rawCalendar).map(
-          ([timestamp, count]) => ({
-            date: new Date(Number(timestamp) * 1000)
-              .toISOString()
-              .split("T")[0],
-            count: Number(count),
-          })
-        );
+      if (calendarData) {
+        let allSubmissions = [];
+        let activeYears = calendarData.activeYears || [];
 
-        // Calculate enhanced statistics
-        const stats = calculateHeatmapStatistics(submissionsByDate);
+        // If activeYears is empty, try to determine from current calendar data
+        if (activeYears.length === 0 && calendarData.submissionCalendar) {
+          const rawCalendar = JSON.parse(calendarData.submissionCalendar);
+          const timestamps = Object.keys(rawCalendar).map(ts => parseInt(ts));
+          if (timestamps.length > 0) {
+            const years = timestamps.map(ts => new Date(ts * 1000).getFullYear());
+            activeYears = [...new Set(years)].sort();
+          }
+        }
 
-        heatmap = {
-          activeYears: calendarData.activeYears || [],
-          submissionsByDate,
-          statistics: stats,
-        };
+        // Get comprehensive calendar data
+        if (calendarData.submissionCalendar) {
+          const rawCalendar = JSON.parse(calendarData.submissionCalendar);
+          const submissionsByDate = Object.entries(rawCalendar).map(
+            ([timestamp, count]) => ({
+              date: new Date(Number(timestamp) * 1000)
+                .toISOString()
+                .split("T")[0],
+              count: Number(count),
+            })
+          );
+          allSubmissions = submissionsByDate;
+        }
+
+        // Try to get additional historical data by fetching year-specific data
+        if (activeYears.length > 0) {
+          const historicalData = await fetchHistoricalSubmissions(graphqlUrl, username, activeYears);
+          if (historicalData.length > 0) {
+            // Merge with existing data, preferring newer data for overlaps
+            const existingDates = new Set(allSubmissions.map(s => s.date));
+            const newData = historicalData.filter(h => !existingDates.has(h.date));
+            allSubmissions = [...allSubmissions, ...newData];
+          }
+        }
+
+        // If we still don't have enough historical data, try alternative approaches
+        if (allSubmissions.length > 0) {
+          const earliestDate = new Date(Math.min(...allSubmissions.map(s => new Date(s.date))));
+          const latestDate = new Date(Math.max(...allSubmissions.map(s => new Date(s.date))));
+          
+          // Fill in missing dates with 0 submissions to have complete data
+          const filledSubmissions = fillMissingDates(allSubmissions, earliestDate, latestDate);
+          
+          // Update active years based on actual data
+          const dataYears = [...new Set(filledSubmissions.map(s => new Date(s.date).getFullYear()))].sort();
+          if (dataYears.length > activeYears.length) {
+            activeYears = dataYears;
+          }
+
+          // Calculate enhanced statistics
+          const stats = calculateHeatmapStatistics(filledSubmissions);
+
+          heatmap = {
+            activeYears,
+            submissionsByDate: filledSubmissions,
+            statistics: stats,
+          };
+        }
       }
     } catch (calendarErr) {
       console.warn("Could not fetch calendar data:", calendarErr.message);
@@ -713,13 +761,12 @@ exports.getLeetCodeDetails = async (req, res) => {
         headers: { "Content-Type": "application/json" },
       });
 
-      const questionsData =
-        questionsResponse.data?.data?.problemsetQuestionList;
+      const questionsData = questionsResponse.data?.data?.problemsetQuestionList;
 
       if (questionsData && questionsData.questions) {
         latestQuestions = questionsData.questions
-          .filter((q) => !q.paidOnly) // Filter out premium questions
-          .slice(0, 20) // Get top 20 questions
+          .filter((q) => !q.paidOnly)
+          .slice(0, 20)
           .map((question) => ({
             id: question.frontendQuestionId,
             title: question.title,
@@ -742,7 +789,7 @@ exports.getLeetCodeDetails = async (req, res) => {
       console.warn("Could not fetch latest questions:", questionsErr.message);
     }
 
-    // Step 6: Fetch trending questions (daily challenge and popular)
+    // Step 6: Fetch trending questions
     let trendingQuestions = [];
     try {
       const trendingQuery = {
@@ -840,6 +887,80 @@ exports.getLeetCodeDetails = async (req, res) => {
     });
   }
 };
+
+// Helper function to fetch historical submissions
+async function fetchHistoricalSubmissions(graphqlUrl, username, activeYears) {
+  const allHistoricalData = [];
+
+  for (const year of activeYears) {
+    try {
+      // Try to get year-specific data
+      const yearQuery = {
+        query: `
+          query userCalendarYear($username: String!, $year: Int!) {
+            matchedUser(username: $username) {
+              userCalendar {
+                submissionCalendar
+              }
+            }
+          }
+        `,
+        variables: { username, year },
+      };
+
+      const yearResponse = await axios.post(graphqlUrl, yearQuery, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const yearCalendarData = yearResponse.data?.data?.matchedUser?.userCalendar;
+
+      if (yearCalendarData?.submissionCalendar) {
+        const rawCalendar = JSON.parse(yearCalendarData.submissionCalendar);
+        const yearSubmissions = Object.entries(rawCalendar)
+          .filter(([timestamp]) => {
+            const date = new Date(Number(timestamp) * 1000);
+            return date.getFullYear() === year;
+          })
+          .map(([timestamp, count]) => ({
+            date: new Date(Number(timestamp) * 1000)
+              .toISOString()
+              .split("T")[0],
+            count: Number(count),
+          }));
+
+        allHistoricalData.push(...yearSubmissions);
+      }
+    } catch (err) {
+      console.warn(`Could not fetch data for year ${year}:`, err.message);
+    }
+  }
+
+  return allHistoricalData;
+}
+
+// Helper function to fill missing dates
+function fillMissingDates(submissions, startDate, endDate) {
+  const filledData = [];
+  const submissionMap = new Map();
+
+  // Create a map of existing submissions
+  submissions.forEach(sub => {
+    submissionMap.set(sub.date, sub.count);
+  });
+
+  // Fill in all dates between start and end
+  const currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    const dateStr = currentDate.toISOString().split("T")[0];
+    filledData.push({
+      date: dateStr,
+      count: submissionMap.get(dateStr) || 0,
+    });
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return filledData;
+}
 
 // New endpoint to get questions by category/difficulty
 exports.getLeetCodeQuestions = async (req, res) => {
@@ -989,8 +1110,7 @@ exports.getDailyChallenge = async (req, res) => {
       headers: { "Content-Type": "application/json" },
     });
 
-    const dailyData =
-      dailyResponse.data?.data?.activeDailyCodingChallengeQuestion;
+    const dailyData = dailyResponse.data?.data?.activeDailyCodingChallengeQuestion;
 
     if (!dailyData) {
       return res.status(404).json({
@@ -1090,6 +1210,7 @@ function calculateHeatmapStatistics(submissionsByDate) {
   };
 }
 
+// Fetch LeetCode question counts
 const fetchLeetCodeQuestionCounts = async () => {
   const graphqlQuery = {
     query: `
@@ -1126,57 +1247,6 @@ const fetchLeetCodeQuestionCounts = async () => {
   }
 };
 
-// const getMaxStreak = async (username) => {
-//   const query = {
-//     query: `
-//       query userProfileCalendar($username: String!) {
-//         userCalendar(username: $username) {
-//           submissionCalendar
-//         }
-//       }
-//     `,
-//     variables: { username }
-//   };
-
-//   try {
-//     const response = await axios.post('https://leetcode.com/graphql', query, {
-//       headers: {
-//         'Content-Type': 'application/json'
-//       }
-//     });
-
-//     const calendarData = response.data.data.userCalendar.submissionCalendar;
-//     const submissions = JSON.parse(calendarData);
-
-//     // Convert timestamps to sorted array of days with submissions
-//     const activeDays = Object.keys(submissions)
-//       .map(ts => parseInt(ts))
-//       .filter(ts => submissions[ts] > 0)
-//       .sort((a, b) => a - b);
-
-//     let maxStreak = 0;
-//     let currentStreak = 1;
-
-//     for (let i = 1; i < activeDays.length; i++) {
-//       const prev = activeDays[i - 1];
-//       const curr = activeDays[i];
-
-//       // If next day is exactly one day apart
-//       if (curr - prev === 86400) {
-//         currentStreak++;
-//         maxStreak = Math.max(maxStreak, currentStreak);
-//       } else {
-//         currentStreak = 1;
-//       }
-//     }
-
-//     return maxStreak;
-//   } catch (err) {
-//     console.error('Error fetching streak:', err.message);
-//     return null;
-//   }
-// };
-
 // Calculate current and longest streaks
 function calculateStreaks(submissions) {
   if (!Array.isArray(submissions) || submissions.length === 0) {
@@ -1204,7 +1274,7 @@ function calculateStreaks(submissions) {
   let streakRanges = [];
   let streakStart = null;
 
-  // ---------- Calculate Current Streak ----------
+  // Calculate Current Streak
   const lastDate = new Date(dates[dates.length - 1].date);
   lastDate.setHours(0, 0, 0, 0);
 
@@ -1228,7 +1298,7 @@ function calculateStreaks(submissions) {
     }
   }
 
-  // ---------- Calculate Longest Streak & Ranges ----------
+  // Calculate Longest Streak & Ranges
   for (let i = 0; i < dates.length; i++) {
     const currDate = new Date(dates[i].date);
     currDate.setHours(0, 0, 0, 0);
@@ -1365,11 +1435,14 @@ function calculateYearlyStats(submissionsByDate) {
       stats.totalSubmissions / stats.activeDays
     ).toFixed(2);
     stats.activeMonths = stats.months.size;
-    delete stats.months; // Remove the Set object
+    delete stats.months;
   });
 
   return yearlyStats;
 }
+
+
+
 
 // Main controller function - Enhanced version of your original
 exports.getGfgDetails = async (req, res) => {

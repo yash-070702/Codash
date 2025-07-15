@@ -1,8 +1,21 @@
 import {createSlice} from "@reduxjs/toolkit";
 
+const getUserFromLocalStorage = () => {
+  const stored = localStorage.getItem("user");
+  if (!stored) return null;
+
+  const parsed = JSON.parse(stored);
+  if (Date.now() > parsed.expiry) {
+    localStorage.removeItem("user");  // Session expired - remove data
+    return null;
+  }
+
+  return parsed.user;
+}
+
 
 const initialState={
-    user:localStorage.getItem("user")?JSON.parse(localStorage.getItem("user")):null,
+    user: getUserFromLocalStorage() || null,
     loading:false,
 }
 
