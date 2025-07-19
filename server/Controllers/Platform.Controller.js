@@ -1617,31 +1617,19 @@ function calculateTotalQuestions(solvedStats) {
 // Helper function to generate heatmap data
 function generateHeatmapData(calendar, year) {
   const heatmapData = [];
-  const startDate = new Date(year, 0, 1); // January 1st of the year
-  const endDate = new Date(year, 11, 31); // December 31st of the year
+  const startDate = new Date(year, 0, 1);
+  const endDate = new Date(year, 11, 31);
 
-  // Generate data for each day of the year
   for (
     let date = new Date(startDate);
     date <= endDate;
     date.setDate(date.getDate() + 1)
   ) {
-    const dateString = date.toISOString().split("T")[0]; // YYYY-MM-DD format
-    const timestamp = date.getTime();
-
-    // Try multiple possible keys for calendar data
-    const dayData =
-      calendar[dateString] ||
-      calendar[timestamp] ||
-      calendar[date.getDate() + "-" + (date.getMonth() + 1) + "-" + year] ||
-      calendar[`${date.getDate()}-${date.getMonth() + 1}-${year}`] ||
-      null;
+    const dateString = date.toISOString().split("T")[0];
+    const dayData = calendar[dateString] || null;
 
     let count = 0;
-    let intensity = 0;
-
-    if (dayData) {
-      // Handle different possible structures of day data
+    if (dayData !== null) {
       if (typeof dayData === "number") {
         count = dayData;
       } else if (dayData.count) {
@@ -1655,33 +1643,31 @@ function generateHeatmapData(calendar, year) {
       }
     }
 
-    // Calculate intensity (0-4 scale for heatmap visualization)
-    if (count === 0) {
-      intensity = 0;
-    } else if (count <= 2) {
-      intensity = 1;
-    } else if (count <= 5) {
-      intensity = 2;
-    } else if (count <= 10) {
-      intensity = 3;
-    } else {
-      intensity = 4;
+    let intensity = 0;
+    if (count > 0) {
+      intensity = count <= 2 ? 1 : count <= 5 ? 2 : count <= 10 ? 3 : 4;
     }
 
     heatmapData.push({
       date: dateString,
-      count: count,
-      intensity: intensity,
-      dayOfWeek: date.getDay(), // 0 = Sunday, 6 = Saturday
+      count,
+      intensity,
+      dayOfWeek: date.getDay(),
       week: Math.ceil((date - startDate) / (7 * 24 * 60 * 60 * 1000)),
       month: date.getMonth() + 1,
       day: date.getDate(),
     });
   }
 
-  return heatmapData;
-}
+  const activeYears = Array.from(
+    new Set(heatmapData.map(item => new Date(item.date).getFullYear()))
+  );
 
+  return {
+    heatmap: heatmapData,
+    activeYears
+  };
+}
 // Helper function to generate empty heatmap data when calendar is not available
 function generateEmptyHeatmapData(year) {
   const heatmapData = [];
